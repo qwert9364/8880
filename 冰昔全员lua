@@ -17,8 +17,7 @@ local CFG={
  Fall={Enabled=false},
  Spin={Target=nil,Strength=5,Duration=3.0},
  Obs={Target=nil,Mode="Third",Offset=6,Active=false},
- ESP={Enabled=false,TeamCheck=true,HideTeammate=false,ShowName=true,ShowHealth=true,ShowDistance=false,MaxDistance=800,Chams=false,ChamsTeamColor=true,ChamsFillTransparency=0.5},
- Ghost={Enabled=false,Mode="本地透明"},
+ ESP={Enabled=false,TeamCheck=true,HideTeammate=false,ShowName=true,ShowHealth=true,ShowDistance=false,ShowCover=true,MaxDistance=800,Chams=false,ChamsTeamColor=true,ChamsFillTransparency=0.5},
  Aim={fovsize=150,distance=200,wallCheck=false,smoothness=5,aimSpeed=5,priority="Smart",bodyPart="头部",activate="自动",hotkey=Enum.KeyCode.LeftControl},
 }
 local function cam()return WS.CurrentCamera end
@@ -94,7 +93,7 @@ local EG=Instance.new("ScreenGui")EG.Name="CSGOESP"EG.ResetOnSpawn=false EG.Igno
 local EC={}
 local function mkE(p)
  if EC[p]then if EC[p].bb then EC[p].bb:Destroy()end if EC[p].hl then EC[p].hl:Destroy()end EC[p]=nil end
- local bb=Instance.new("BillboardGui")bb.Size=UDim2.new(0,130,0,56)bb.StudsOffset=Vector3.new(0,3.2,0)bb.AlwaysOnTop=true bb.MaxDistance=CFG.ESP.MaxDistance bb.Parent=EG
+ local bb=Instance.new("BillboardGui")bb.Size=UDim2.new(0,130,0,70)bb.StudsOffset=Vector3.new(0,3.4,0)bb.AlwaysOnTop=true bb.MaxDistance=CFG.ESP.MaxDistance bb.Parent=EG
  local rt=Instance.new("Frame")rt.Size=UDim2.new(1,0,1,0)rt.BackgroundTransparency=1 rt.Parent=bb
  local nm=Instance.new("TextLabel")nm.Size=UDim2.new(1,0,0,16)nm.BackgroundTransparency=1 nm.Text=p.Name nm.TextColor3=Color3.new(1,1,1)nm.TextStrokeTransparency=0 nm.TextStrokeColor3=Color3.new(0,0,0)nm.Font=Enum.Font.GothamBold nm.TextSize=13 nm.Parent=rt
  local hb=Instance.new("Frame")hb.Size=UDim2.new(1,-20,0,6)hb.Position=UDim2.new(0.5,0,0,18)hb.AnchorPoint=Vector2.new(0.5,0)hb.BackgroundColor3=Color3.fromRGB(20,20,20)hb.BorderSizePixel=0 hb.Parent=rt
@@ -102,8 +101,9 @@ local function mkE(p)
  local hf=Instance.new("Frame")hf.Size=UDim2.new(1,0,1,0)hf.BackgroundColor3=Color3.fromRGB(255,120,180)hf.BorderSizePixel=0 hf.Parent=hb
  Instance.new("UICorner",hf).CornerRadius=UDim.new(1,0)
  local dl=Instance.new("TextLabel")dl.Size=UDim2.new(1,0,0,14)dl.Position=UDim2.new(0,0,0,26)dl.BackgroundTransparency=1 dl.Text="0m"dl.TextColor3=Color3.fromRGB(200,200,200)dl.TextStrokeTransparency=0 dl.TextStrokeColor3=Color3.new(0,0,0)dl.Font=Enum.Font.Gotham dl.TextSize=11 dl.Parent=rt
+ local cl=Instance.new("TextLabel")cl.Size=UDim2.new(1,0,0,14)cl.Position=UDim2.new(0,0,0,40)cl.BackgroundTransparency=1 cl.Text="掩体: --"cl.TextColor3=Color3.new(1,1,1)cl.TextStrokeTransparency=0 cl.TextStrokeColor3=Color3.new(0,0,0)cl.Font=Enum.Font.GothamBold cl.TextSize=11 cl.Parent=rt
  local hl=Instance.new("Highlight")hl.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop hl.OutlineColor=Color3.fromRGB(255,120,180)hl.OutlineTransparency=0 hl.FillColor=Color3.fromRGB(255,120,180)hl.FillTransparency=0.5 hl.Enabled=false hl.Parent=EG
- EC[p]={bb=bb,rt=rt,nm=nm,hf=hf,dl=dl,hl=hl}
+ EC[p]={bb=bb,rt=rt,nm=nm,hf=hf,dl=dl,cl=cl,hl=hl}
 end
 local function rmE(p)
  if EC[p]then if EC[p].bb then EC[p].bb:Destroy()end if EC[p].hl then EC[p].hl:Destroy()end EC[p]=nil end
@@ -129,11 +129,25 @@ RS.RenderStepped:Connect(function()
    d.hf.BackgroundColor3=hp>0.6 and Color3.fromRGB(120,220,130)or hp>0.3 and Color3.fromRGB(255,200,0)or Color3.fromRGB(220,40,40)
    d.dl.Visible=CFG.ESP.ShowDistance
    if CFG.ESP.ShowDistance then d.dl.Text=string.format("%dm",math.floor(ds))end
+   if d.cl then
+    if CFG.ESP.ShowCover then
+     d.cl.Visible=true
+     local covered=not los(hd)
+     if covered then
+      d.cl.Text="掩体: 有"
+      d.cl.TextColor3=Color3.fromRGB(255,60,60)
+     else
+      d.cl.Text="掩体: 无"
+      d.cl.TextColor3=Color3.fromRGB(60,220,60)
+     end
+    else
+     d.cl.Visible=false
+    end
+   end
   end
   if d.hl then
    if CFG.ESP.Chams and not hid then
-    local bk
-    if true then bk=not los(hd)else bk=true end
+    local bk=not los(hd)
     if bk then
      d.hl.Adornee=c d.hl.Enabled=true
      d.hl.FillTransparency=CFG.ESP.ChamsFillTransparency
@@ -172,12 +186,25 @@ task.spawn(function()while task.wait(0.1)do local c=LP.Character if c then local
   if CFG.Movement.Enabled and h.WalkSpeed~=CFG.Movement.Speed then pcall(function()h.WalkSpeed=CFG.Movement.Speed end)end
   if CFG.Movement.JumpEnabled then pcall(function()if h.UseJumpPower then h.JumpPower=CFG.Movement.JumpPower else h.JumpHeight=CFG.Movement.JumpPower/7.5 end end)end
  end end end end)
-task.spawn(function()while true do RS.Stepped:Wait()
- if not CFG.Movement.InfiniteJump or CFG.Movement.FlyEnabled then continue end
- local c=LP.Character if not c then continue end
- local r=c:FindFirstChild("HumanoidRootPart")if not r then continue end
- if UIS:IsKeyDown(Enum.KeyCode.Space)then local v=r.AssemblyLinearVelocity r.AssemblyLinearVelocity=Vector3.new(v.X,55,v.Z)end
-end end)
+task.spawn(function()
+ while true do
+  RS.Stepped:Wait()
+  if not CFG.Movement.InfiniteJump or CFG.Movement.FlyEnabled then continue end
+  local c=LP.Character if not c then continue end
+  local h=c:FindFirstChildOfClass("Humanoid")
+  local r=c:FindFirstChild("HumanoidRootPart")
+  if not h or not r then continue end
+  if not UIS:IsKeyDown(Enum.KeyCode.Space) then continue end
+  pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Jumping,true) end)
+  local st=h:GetState()
+  if st==Enum.HumanoidStateType.Landed or st==Enum.HumanoidStateType.Running or st==Enum.HumanoidStateType.RunningNoPhysics then
+   pcall(function() h:ChangeState(Enum.HumanoidStateType.Jumping) end)
+  elseif st==Enum.HumanoidStateType.Freefall then
+   local v=r.AssemblyLinearVelocity
+   if v.Y<55 then r.AssemblyLinearVelocity=Vector3.new(v.X,55,v.Z) end
+  end
+ end
+end)
 local NB={}local NCA=false
 local function apNC()
  local c=LP.Character if not c then return end
@@ -429,54 +456,6 @@ local function spFl(t)
  end)
  notify("甩飞","强度 "..CFG.Spin.Strength.." → "..t.Name)
 end
-local Ghost={Conn=nil,Backup={}}
-local function applyGhost(char,on)
- if not char then return end
- local mode=CFG.Ghost.Mode
- for _,obj in ipairs(char:GetDescendants())do
-  if obj:IsA("BasePart")then
-   if on then
-    if not Ghost.Backup[obj]then Ghost.Backup[obj]={T=obj.Transparency,M=obj.Material}end
-    if mode=="本地透明"then obj.LocalTransparencyModifier=1
-    elseif mode=="真隐身"then obj.Transparency=1 obj.LocalTransparencyModifier=1
-    elseif mode=="幽灵"then
-     obj.LocalTransparencyModifier=0.55
-     pcall(function()obj.Transparency=0.55 end)
-     pcall(function()obj.Material=Enum.Material.ForceField end)
-    end
-   else
-    local b=Ghost.Backup[obj]
-    if b then
-     pcall(function()obj.Transparency=b.T end)
-     pcall(function()obj.Material=b.M end)
-     Ghost.Backup[obj]=nil
-    end
-    obj.LocalTransparencyModifier=0
-   end
-  end
- end
-end
-local function startGhost()
- if Ghost.Conn then return end
- Ghost.Conn=RS.RenderStepped:Connect(function()
-  if not CFG.Ghost.Enabled then return end
-  local c=LP.Character
-  if c then applyGhost(c,true) end
- end)
-end
-local function stopGhost()
- if Ghost.Conn then Ghost.Conn:Disconnect()Ghost.Conn=nil end
- local c=LP.Character
- if c then applyGhost(c,false)end
- Ghost.Backup={}
-end
-LP.CharacterAdded:Connect(function()if CFG.Ghost.Enabled then task.wait(0.5)if CFG.Ghost.Enabled then startGhost()end end end)
-local OL={}
-local function tNV(s)
- local L=game:GetService("Lighting")
- if s then OL={B=L.Brightness,A=L.Ambient,OA=L.OutdoorAmbient,C=L.ClockTime,F=L.FogEnd}L.Brightness=3 L.Ambient=Color3.fromRGB(180,180,180)L.OutdoorAmbient=Color3.fromRGB(180,180,180)L.ClockTime=14 L.FogEnd=100000
- else if OL.B then L.Brightness=OL.B L.Ambient=OL.A L.OutdoorAmbient=OL.OA L.ClockTime=OL.C L.FogEnd=OL.F end end
-end
 local function getNames()local l={}for _,p in ipairs(Players:GetPlayers())do if p~=LP then table.insert(l,p.Name)end end return l end
 local W=WUI:CreateWindow({Title="奶佛脚本复活版",Icon="crosshair",Author="奶佛",Folder="CSGOAssist",Size=UDim2.fromOffset(680,480),Theme="Dark",User={Enabled=true,Anonymous=true,Callback=function()WUI:Notify({Title="关于",Content="奶佛脚本复活版",Duration=3})end},SideBarWidth=180,ScrollBarEnabled=true})
 local MS=W:Section({Title="主要功能",Opened=true})
@@ -500,7 +479,7 @@ MT:Toggle({Title="加速",Value=false,Callback=function(v)CFG.Movement.Enabled=v
 MT:Slider({Title="移动速度",Value={Min=16,Max=300,Default=32},Callback=function(v)CFG.Movement.Speed=v end})
 MT:Toggle({Title="跳跃增强",Value=false,Callback=function(v)CFG.Movement.JumpEnabled=v nTg("跳跃",v)end})
 MT:Slider({Title="跳跃力",Value={Min=50,Max=300,Default=50},Callback=function(v)CFG.Movement.JumpPower=v end})
-MT:Toggle({Title="无限跳",Value=false,Callback=function(v)CFG.Movement.InfiniteJump=v nTg("无限跳",v)end})
+MT:Toggle({Title="无限跳（连跳）",Value=false,Callback=function(v)CFG.Movement.InfiniteJump=v nTg("无限跳",v)end})
 MT:Toggle({Title="飞行",Value=false,Callback=function(v)CFG.Movement.FlyEnabled=v nTg("飞行",v)end})
 MT:Slider({Title="飞行速度",Value={Min=20,Max=500,Default=60},Callback=function(v)CFG.Movement.FlySpeed=v end})
 MT:Toggle({Title="飞行穿墙",Value=false,Callback=function(v)CFG.Movement.FlyNoClip=v nTg("穿墙",v)end})
@@ -511,6 +490,7 @@ ET:Toggle({Title="屏蔽队友",Value=false,Callback=function(v)CFG.ESP.HideTeam
 ET:Toggle({Title="显示名字",Value=true,Callback=function(v)CFG.ESP.ShowName=v end})
 ET:Toggle({Title="显示血量",Value=true,Callback=function(v)CFG.ESP.ShowHealth=v end})
 ET:Toggle({Title="显示距离",Value=false,Callback=function(v)CFG.ESP.ShowDistance=v end})
+ET:Toggle({Title="显示掩体状态",Value=true,Callback=function(v)CFG.ESP.ShowCover=v end})
 ET:Slider({Title="最大距离",Value={Min=100,Max=5000,Default=800},Callback=function(v)CFG.ESP.MaxDistance=v end})
 ET:Toggle({Title="Chams 内透",Value=false,Callback=function(v)CFG.ESP.Chams=v nTg("Chams",v)end})
 ET:Slider({Title="填充透明",Value={Min=0,Max=1,Default=0.5},Callback=function(v)CFG.ESP.ChamsFillTransparency=v end})
@@ -533,8 +513,16 @@ OT:Dropdown({Title="视角",Values={"First","Third","Top","Side"},Callback=funct
 OT:Slider({Title="偏移",Value={Min=0,Max=20,Default=6},Callback=function(v)CFG.Obs.Offset=v end})
 OT:Button({Title="观察",Callback=function()sObs(CFG.Obs.Target)end})
 OT:Button({Title="退出",Callback=function()stopObs()end})
-EFT:Toggle({Title="夜视",Value=false,Callback=function(v)tNV(v)nTg("夜视",v)end})
-EFT:Divider()
-EFT:Toggle({Title="👻 隐身",Value=false,Callback=function(v)CFG.Ghost.Enabled=v if v then startGhost()notify("隐身","开")else stopGhost()notify("隐身","关")end end})
-EFT:Dropdown({Title="模式",Values={"本地透明","真隐身","幽灵"},Callback=function(v)CFG.Ghost.Mode=v if CFG.Ghost.Enabled then stopGhost()task.wait(0.1)startGhost()end end})
+EFT:Toggle({Title="夜视",Value=false,Callback=function(v)
+ local L=game:GetService("Lighting")
+ if v then
+  getgenv().__NV={B=L.Brightness,A=L.Ambient,OA=L.OutdoorAmbient,C=L.ClockTime,F=L.FogEnd}
+  L.Brightness=3 L.Ambient=Color3.fromRGB(180,180,180)L.OutdoorAmbient=Color3.fromRGB(180,180,180)L.ClockTime=14 L.FogEnd=100000
+  nTg("夜视",true)
+ else
+  local o=getgenv().__NV
+  if o then L.Brightness=o.B L.Ambient=o.A L.OutdoorAmbient=o.OA L.ClockTime=o.C L.FogEnd=o.F end
+  nTg("夜视",false)
+ end
+end})
 notify("奶佛脚本复活版","加载完成",3)
